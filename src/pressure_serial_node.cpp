@@ -26,10 +26,10 @@ public:
     command_delay_ms_ = declare_parameter<int>("command_delay_ms", 100);
     board_ids_ = declare_parameter<std::vector<int64_t>>("board_ids", std::vector<int64_t>{10, 11, 12});
 
-    // Prepare publishers for each board ID
+    // Prepare publishers for each board ID (fixed topic names)
     for (auto id64 : board_ids_) {
       int id = static_cast<int>(id64);
-      std::string topic = "pressure/board/" + std::to_string(id);
+      std::string topic = "pressure/board_" + std::to_string(id);  // Changed from /10 to _10
       publishers_[id] = this->create_publisher<std_msgs::msg::UInt8MultiArray>(topic, 10);
       RCLCPP_INFO(get_logger(), "Advertising: %s", topic.c_str());
     }
@@ -184,10 +184,10 @@ private:
     auto it = publishers_.find(id_dec);
     if (it == publishers_.end()) {
       // If unknown id, create a publisher on the fly for visibility
-      auto pub = this->create_publisher<std_msgs::msg::UInt8MultiArray>("pressure/board/" + std::to_string(id_dec), 10);
+      auto pub = this->create_publisher<std_msgs::msg::UInt8MultiArray>("pressure/board_" + std::to_string(id_dec), 10);
       publishers_[id_dec] = pub;
       it = publishers_.find(id_dec);
-      RCLCPP_INFO(get_logger(), "Auto-advertised pressure/board/%d", id_dec);
+      RCLCPP_INFO(get_logger(), "Auto-advertised pressure/board_%d", id_dec);
     }
 
     std_msgs::msg::UInt8MultiArray msg;
