@@ -8,34 +8,55 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-# Add executable
-add_executable(pressure_serial_reader_node src/pressure_serial_reader_node.cpp)
-target_include_directories(pressure_serial_reader_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_features(pressure_serial_reader_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-ament_target_dependencies(
-  pressure_serial_reader_node
-  "rclcpp"
-  "sensor_msgs"
-  "std_msgs"
+# Generate custom interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/BoardCommand.srv"
+  "msg/CommandStatus.msg"
+  DEPENDENCIES std_msgs
 )
 
+# Add executable
+add_executable(pressure_command_sender_node src/pressure_command_sender_node.cpp)
+target_include_directories(pressure_command_sender_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(pressure_command_sender_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+# Dependencies for the executable
+ament_target_dependencies(
+  pressure_command_sender_node
+  "rclcpp"
+  "std_msgs"
+  "std_srvs"
+)
+
+# Link against the generated interfaces
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(pressure_command_sender_node "${cpp_typesupport_target}")
+
 # Install targets
-install(TARGETS pressure_serial_reader_node
+install(TARGETS pressure_command_sender_node
   DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch/
+  FILES_MATCHING PATTERN "*.py"
 )
 
 # Install config files
 install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config/
+  FILES_MATCHING PATTERN "*.yaml"
+)
+
+# Install include directory
+install(DIRECTORY include/
+  DESTINATION include/
 )
 
 if(BUILD_TESTING)
@@ -49,5 +70,9 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# Export dependencies for downstream packages
+ament_export_dependencies(rosidl_default_runtime)
+ament_export_include_directories(include)
 
 ament_package()

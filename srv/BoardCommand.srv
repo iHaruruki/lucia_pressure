@@ -1,0 +1,5 @@
+# Service for sending command to a specific board
+uint8 board_id
+---
+bool success
+string message
