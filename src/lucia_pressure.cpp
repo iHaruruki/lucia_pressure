@@ -66,17 +66,17 @@ private:
       }
 
       // 【3】パース
-      int ch1 = buf[4];
-      int ch2 = buf[5];
-      int ch3 = buf[6];
-      int ch4 = buf[7];
-      int ch5 = buf[8];
-      int ch6 = buf[9];
-      int ch7 = buf[10];
-      int ch8 = buf[11];
+      u_int16_t ch1 = buf[4];
+      u_int16_t ch2 = buf[5];
+      u_int16_t ch3 = buf[6];
+      u_int16_t ch4 = buf[7];
+      u_int16_t ch5 = buf[8];
+      u_int16_t ch6 = buf[9];
+      u_int16_t ch7 = buf[10];
+      u_int16_t ch8 = buf[11];
 
-      for(int i=0; i<12; i++){
-        std::cout << std::hex << (int)buf[i] << std::endl;
+      for(int i=4; i<12; i++){
+        std::cout << "buf[" << i << "] = " << std::hex << (int)buf[i] << std::endl;
       }
     }
   }
