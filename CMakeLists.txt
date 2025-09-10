@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(lucia_vital)
+project(lucia_pressure)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -13,14 +13,14 @@ find_package(rclcpp REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-add_executable(vital_controller_node src/lucia_vital.cpp)
-ament_target_dependencies(vital_controller_node
+add_executable(pressure_controller_node src/lucia_pressure.cpp)
+ament_target_dependencies(pressure_controller_node
   rclcpp
   std_msgs
 )
 
 install(TARGETS
-  vital_controller_node
+  pressure_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
