@@ -140,9 +140,55 @@ bool PressureSerialReader::init_serial()
     
     return true;
 }
+
+void PressureSerialReader::send_serial_data()
+{
+    if (serial_fd_ < 0) {
+        return;
+    }
+
+    unsigned char txData[16]={};
+	unsigned char txData_r[16]={};
+
+    //ioctl(serial_fd_, FIONREAD, &len);
+    // if (len > 0) {
+    //     read(serial_fd_, txData_r, len);
+    // }
+
+    txData[0] = 0xAA;
+    txData[1] = 0xC1;
+    txData[2] = 0x0C;
+    txData[3] = 0x00;
+    txData[4] = 0x21;
+    txData[5] = 0x55;
+
+    write(serial_fd_, txData, sizeof(txData));
+    usleep(0.1*1000000);
+    
+    txData[0] = 0xAA;
+    txData[1] = 0xC1;
+    txData[2] = 0x0B;
+    txData[3] = 0x00;
+    txData[4] = 0x21;
+    txData[5] = 0x55;
+
+    write(serial_fd_, txData, sizeof(txData));
+    usleep(0.1*1000000);
+    
+    txData[0] = 0xAA;
+    txData[1] = 0xC1;
+    txData[2] = 0x0A;
+    txData[3] = 0x00;
+    txData[4] = 0x21;
+    txData[5] = 0x55;
+
+    write(serial_fd_, txData, sizeof(txData));
+}
     
 void PressureSerialReader::read_serial_data()
 {
+    send_serial_data();
+
     if (serial_fd_ < 0) {
         return;
     }

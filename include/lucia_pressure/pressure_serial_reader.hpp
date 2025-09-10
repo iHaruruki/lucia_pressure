@@ -30,6 +30,7 @@ public:
 private:
     // Serial communication methods
     bool init_serial();
+    void send_serial_data();
     void read_serial_data();
     void process_packet(const std::vector<int>& vec);
     
