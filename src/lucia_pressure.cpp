@@ -14,10 +14,7 @@
 using namespace std::chrono_literals;
 
 struct Publishers {
-  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr hr;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr spo2;
-  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr sys_bp;
-  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr dia_bp;
+
 };
 
 class VitalSensorNode : public rclcpp::Node {
@@ -42,20 +39,6 @@ public:
     tio.c_lflag = 0;
     tcsetattr(serial_fd_, TCSANOW, &tio);
 
-    // 各センサIDごとのパブリッシャを準備
-    for (auto id : {0x0A, 0x0B, 0x0C}) {
-      char suffix = id == 0x0A ? 'A' : id == 0x0B ? 'B' : 'C';
-      auto &pub = pubs_[id];
-      pub.hr = this->create_publisher<std_msgs::msg::Int32>(
-        "vital/" + std::string(1, suffix) + "/hr", 10);
-      pub.spo2 = this->create_publisher<std_msgs::msg::Float64>(
-        "vital/" + std::string(1, suffix) + "/spo2", 10);
-      pub.sys_bp = this->create_publisher<std_msgs::msg::Int32>(
-        "vital/" + std::string(1, suffix) + "/sys_bp", 10);
-      pub.dia_bp = this->create_publisher<std_msgs::msg::Int32>(
-        "vital/" + std::string(1, suffix) + "/dia_bp", 10);
-    }
-
     // タイマー：200msごとにセンサをポーリング
     timer_ = this->create_wall_timer(200ms, std::bind(&VitalSensorNode::poll_sensors, this));
   }
@@ -70,43 +53,31 @@ private:
   void poll_sensors() {
     for (auto id : {0x0A, 0x0B, 0x0C}) {
       // 【1】リクエスト送信
-      std::array<uint8_t, 6> req = {{0xAA, 0xC1, static_cast<uint8_t>(id), 0x00, 0x20, 0x55}};
+      std::array<uint8_t, 6> req = {{0xAA, 0xC1, static_cast<uint8_t>(id), 0x00, 0x21, 0x55}};
       write(serial_fd_, req.data(), req.size());
       std::this_thread::sleep_for(100ms);
 
       // 【2】レスポンス受信
       uint8_t buf[16] = {};
       int n = read(serial_fd_, buf, sizeof(buf));
-      if (n < 9 || buf[0] != 0xAA || buf[1] != 0xC5) {
+      if (n < 12 || buf[0] != 0xAA || buf[1] != 0xC8) {
         RCLCPP_WARN(this->get_logger(), "Invalid response from ID=0x%02X (%d bytes)", id, n);
         continue;
       }
 
-      // 【3】パース（spo2は10倍された値で送信される）
-      int hr = buf[4];
-      uint16_t spo2_raw = static_cast<uint16_t>(buf[5]) | (static_cast<uint16_t>(buf[6]) << 8);
-      double spo2 = spo2_raw / 10.0;
-      int sys_bp = buf[7];
-      int dia_bp = buf[8];
+      // 【3】パース
+      int ch1 = buf[4];
+      int ch2 = buf[5];
+      int ch3 = buf[6];
+      int ch4 = buf[7];
+      int ch5 = buf[8];
+      int ch6 = buf[9];
+      int ch7 = buf[10];
+      int ch8 = buf[11];
 
-      // デバッグ出力
-      RCLCPP_INFO(this->get_logger(),
-        "ID=0x%02X: hr=%d, spo2=%.1f, sys_bp=%d, dia_bp=%d",
-        id, hr, spo2, sys_bp, dia_bp);
-
-      // 【4】パブリッシュ
-      auto &pub = pubs_[id];
-      auto msg_hr = std::make_shared<std_msgs::msg::Int32>(); msg_hr->data = hr;
-      pub.hr->publish(*msg_hr);
-
-      auto msg_sp = std::make_shared<std_msgs::msg::Float64>(); msg_sp->data = spo2;
-      pub.spo2->publish(*msg_sp);
-
-      auto msg_sys = std::make_shared<std_msgs::msg::Int32>(); msg_sys->data = sys_bp;
-      pub.sys_bp->publish(*msg_sys);
-
-      auto msg_dia = std::make_shared<std_msgs::msg::Int32>(); msg_dia->data = dia_bp;
-      pub.dia_bp->publish(*msg_dia);
+      for(int i=0; i<12; i++){
+        std::cout << std::hex << (int)buf[i] << std::endl;
+      }
     }
   }
 
