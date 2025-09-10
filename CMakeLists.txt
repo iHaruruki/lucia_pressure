@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Add executable
 add_executable(pressure_serial_reader_node src/pressure_serial_reader_node.cpp)
@@ -20,6 +21,7 @@ ament_target_dependencies(
   pressure_serial_reader_node
   "rclcpp"
   "sensor_msgs"
+  "std_msgs"
 )
 
 # Install targets
@@ -29,6 +31,11 @@ install(TARGETS pressure_serial_reader_node
 # Install launch files
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch/
+)
+
+# Install config files
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config/
 )
 
 if(BUILD_TESTING)
