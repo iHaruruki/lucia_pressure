@@ -157,6 +157,7 @@ bool PressureCommandSender::send_command_to_board(uint8_t board_id)
     }
 
     RCLCPP_DEBUG(this->get_logger(), "Command sent to board %d (0x%02X)", board_id, board_id);
+    RCLCPP_INFO(this->get_logger(), "Command sent to board %d (0x%02X)", board_id, board_id);
 
     // Update status tracking
     current_board_ = board_id;
@@ -203,6 +204,7 @@ void PressureCommandSender::continuous_command_callback(const std_msgs::msg::Boo
 
 void PressureCommandSender::board_10_command_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
+    RCLCPP_INFO(this->get_logger(), "data: %d", msg->data);
     if (msg->data) {
         send_command_to_board(10);
         RCLCPP_INFO(this->get_logger(), "Board 10 command executed");
@@ -211,6 +213,7 @@ void PressureCommandSender::board_10_command_callback(const std_msgs::msg::Bool:
 
 void PressureCommandSender::board_11_command_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
+    RCLCPP_INFO(this->get_logger(), "data: %d", msg->data);
     if (msg->data) {
         send_command_to_board(11);
         RCLCPP_INFO(this->get_logger(), "Board 11 command executed");
@@ -219,6 +222,7 @@ void PressureCommandSender::board_11_command_callback(const std_msgs::msg::Bool:
 
 void PressureCommandSender::board_12_command_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
+    RCLCPP_INFO(this->get_logger(), "data: %d", msg->data);
     if (msg->data) {
         send_command_to_board(12);
         RCLCPP_INFO(this->get_logger(), "Board 12 command executed");
