@@ -148,7 +148,7 @@ void PressureSerialReader::send_serial_data()
     }
 
     unsigned char txData[16]={};
-	unsigned char txData_r[16]={};
+	//unsigned char txData_r[16]={};
 
     //ioctl(serial_fd_, FIONREAD, &len);
     // if (len > 0) {
