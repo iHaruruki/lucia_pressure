@@ -5,23 +5,44 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
-# find dependencies
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+# Add executable
+add_executable(pressure_command_sender_node src/pressure_command_sender_node.cpp)
+target_include_directories(pressure_command_sender_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(pressure_command_sender_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-add_executable(pressure_controller_node src/lucia_pressure.cpp)
-ament_target_dependencies(pressure_controller_node
-  rclcpp
-  std_msgs
+# Dependencies for the executable
+ament_target_dependencies(
+  pressure_command_sender_node
+  "rclcpp"
+  "std_msgs"
 )
 
-install(TARGETS
-  pressure_controller_node
-  DESTINATION lib/${PROJECT_NAME}
+# Install targets
+install(TARGETS pressure_command_sender_node
+  DESTINATION lib/${PROJECT_NAME})
+
+# Install launch files
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch/
+  FILES_MATCHING PATTERN "*.py"
+)
+
+# Install config files
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config/
+  FILES_MATCHING PATTERN "*.yaml"
+)
+
+# Install include directory
+install(DIRECTORY include/
+  DESTINATION include/
 )
 
 if(BUILD_TESTING)
@@ -35,5 +56,8 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# Export dependencies for downstream packages
+ament_export_include_directories(include)
 
 ament_package()
