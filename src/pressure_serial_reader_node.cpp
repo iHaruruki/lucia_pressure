@@ -14,7 +14,7 @@
  * - Publishes averaged pressure array on /pressure/averaged_array topic
  */
 
-#include "pressure_serial_reader/pressure_serial_reader.hpp"
+#include "lucia_pressure/pressure_serial_reader.hpp"
 #include <cmath>
 
 using namespace std::chrono_literals;
