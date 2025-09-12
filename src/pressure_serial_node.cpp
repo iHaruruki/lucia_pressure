@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -25,14 +26,14 @@ public:
     baud_rate_ = declare_parameter<int>("baud_rate", 2000000);
     command_delay_ms_ = declare_parameter<int>("command_delay_ms", 100);
     board_ids_ = declare_parameter<std::vector<int64_t>>("board_ids", std::vector<int64_t>{10, 11, 12});
-
-    // Prepare publishers for each board ID (fixed topic names)
-    for (auto id64 : board_ids_) {
-      int id = static_cast<int>(id64);
-      std::string topic = "pressure/board_" + std::to_string(id);  // Changed from /10 to _10
-      publishers_[id] = this->create_publisher<std_msgs::msg::UInt8MultiArray>(topic, 10);
-      RCLCPP_INFO(get_logger(), "Advertising: %s", topic.c_str());
+    // Build index mapping and allocate aggregated buffer (8 bytes per board)
+    aggregated_.assign(board_ids_.size() * 8, 0u);
+    for (size_t i = 0; i < board_ids_.size(); ++i) {
+      id_to_index_[static_cast<int>(board_ids_[i])] = i;
     }
+    aggregated_publisher_ = this->create_publisher<std_msgs::msg::UInt8MultiArray>("pressure/all", 10);
+    RCLCPP_INFO(get_logger(), "Advertising aggregated topic: pressure/all (%zu boards, %zu bytes)",
+                board_ids_.size(), aggregated_.size());
 
     if (!open_and_configure(serial_port_, baud_rate_)) {
       RCLCPP_FATAL(get_logger(), "Failed to open/configure serial port: %s", serial_port_.c_str());
@@ -181,21 +182,22 @@ private:
 
   void publish_data(uint8_t id, const std::array<uint8_t,8> &ch) {
     int id_dec = static_cast<int>(id);
-    auto it = publishers_.find(id_dec);
-    if (it == publishers_.end()) {
-      // If unknown id, create a publisher on the fly for visibility
-      auto pub = this->create_publisher<std_msgs::msg::UInt8MultiArray>("pressure/board_" + std::to_string(id_dec), 10);
-      publishers_[id_dec] = pub;
-      it = publishers_.find(id_dec);
-      RCLCPP_INFO(get_logger(), "Auto-advertised pressure/board_%d", id_dec);
+    auto it = id_to_index_.find(id_dec);
+    if (it == id_to_index_.end()) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "Received data for unexpected board id=%d", id_dec);
+      return;
+    }
+
+    size_t base = it->second * 8;
+    for (int k = 0; k < 8; ++k) {
+      aggregated_[base + k] = ch[k];
     }
 
     std_msgs::msg::UInt8MultiArray msg;
-    msg.data.assign(ch.begin(), ch.end());
-    it->second->publish(msg);
+    msg.data = aggregated_; // copy
+    aggregated_publisher_->publish(msg);
 
-    RCLCPP_DEBUG(get_logger(), "ID 0x%02X -> [%u %u %u %u %u %u %u %u]",
-                 id, ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7]);
+    RCLCPP_DEBUG(get_logger(), "Updated board %d -> publish aggregated (%zu bytes)", id_dec, aggregated_.size());
   }
 
   // Params
@@ -211,7 +213,9 @@ private:
   std::unique_ptr<std::thread> read_thread_;
 
   // Publishers per board id
-  std::map<int, rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr> publishers_;
+  rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr aggregated_publisher_;
+  std::vector<uint8_t> aggregated_; // 8 * board_count bytes
+  std::map<int, size_t> id_to_index_; // board id -> index in aggregated
 };
 
 int main(int argc, char **argv) {
